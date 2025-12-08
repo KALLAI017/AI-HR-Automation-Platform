@@ -1,0 +1,40 @@
+{
+  "confidence_score": 5.86,
+  "visual_analysis": {
+    "face_presence": 100.0,
+    "emotional_positivity": 39.838802337646484,
+    "smile_rate": 30.710739135742188,
+    "eye_contact_rate": 43.13725490196079,
+    "head_stability": 82.0,
+    "nervousness_indicators": 34.621219635009766,
+    "total_frames_analyzed": 51,
+    "emotion_breakdown": {
+      "happy": 30.710739135742188,
+      "neutral": 30.4268798828125,
+      "sad": 15.785683631896973,
+      "fear": 4.843554973602295,
+      "angry": 13.991982460021973
+    }
+  },
+  "audio_analysis": {
+    "pitch_stability": 75.69,
+    "energy_consistency": 60.209999084472656,
+    "speech_rate": 362.59,
+    "speaking_ratio": 89.23,
+    "voice_clarity": 42.74,
+    "voice_emotion_score": 50,
+    "detected_emotion": "neutral",
+    "duration_seconds": 25.98,
+    "speechbrain_used": false
+  },
+  "interpretation": "Moderately Confident - Acceptable with room for improvement",
+  "strengths": [
+    "Maintains good camera presence",
+    "Composed body language",
+    "Stable and clear voice",
+    "Good speaking pace"
+  ],
+  "areas_for_improvement": [
+    "Practice to reduce nervousness"
+  ]
+}

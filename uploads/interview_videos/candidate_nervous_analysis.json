@@ -1,0 +1,40 @@
+{
+  "confidence_score": 4.77,
+  "visual_analysis": {
+    "face_presence": 100.0,
+    "emotional_positivity": 16.521629333496094,
+    "smile_rate": 11.12576961517334,
+    "eye_contact_rate": 39.726027397260275,
+    "head_stability": 82.75862068965517,
+    "nervousness_indicators": 70.16126251220703,
+    "total_frames_analyzed": 146,
+    "emotion_breakdown": {
+      "happy": 11.12576961517334,
+      "neutral": 17.9862003326416,
+      "sad": 26.608598709106445,
+      "fear": 13.935794830322266,
+      "angry": 29.61686897277832
+    }
+  },
+  "audio_analysis": {
+    "pitch_stability": 54.38,
+    "energy_consistency": 56.15999984741211,
+    "speech_rate": 223.95,
+    "speaking_ratio": 81.1,
+    "voice_clarity": 61.27,
+    "voice_emotion_score": 50,
+    "detected_emotion": "neutral",
+    "duration_seconds": 73.14,
+    "speechbrain_used": false
+  },
+  "interpretation": "Somewhat Nervous - Shows signs of anxiety but manages",
+  "strengths": [
+    "Maintains good camera presence",
+    "Composed body language",
+    "Good speaking pace"
+  ],
+  "areas_for_improvement": [
+    "Consider showing more positive expressions",
+    "Practice to reduce nervousness"
+  ]
+}
