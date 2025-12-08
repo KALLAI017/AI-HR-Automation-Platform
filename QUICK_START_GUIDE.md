@@ -7,7 +7,7 @@
 **Setup:** None required
 
 ### Option 2: With Email (Complete Experience)
-**Time:** 7 minutes (5 min setup + 2 min demo)  
+**Time:** 7 minutes (6 min setup + 2 min demo)  
 **Setup:** Configure Gmail (see EMAIL_SETUP_GUIDE.md)
 
 ---
