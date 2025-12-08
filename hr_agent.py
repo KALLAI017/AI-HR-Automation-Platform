@@ -89,10 +89,13 @@ class Candidate:
     experience_years: int
     education: str
     application_date: str
-    status: str  # Pending, Accepted, Rejected, Test_Scheduled, Hired
+    status: str  # Pending, Accepted, Rejected, Test_Scheduled, Hired, Interview_Pending, Interview_Completed
     evaluation_result: Optional[Dict] = None
     test_score: Optional[float] = None
     test_taken: bool = False
+    interview_video_path: Optional[str] = None
+    confidence_score: Optional[float] = None
+    interview_completed: bool = False
 
 @dataclass 
 class User:
@@ -465,6 +468,19 @@ Leave Balance:
             if job.title == title:
                 return job_id
         return None
+    
+    def update_candidate_interview_status(self, candidate_id: str, video_path: str, confidence_score: float):
+        """Update candidate's interview video and confidence score"""
+        if candidate_id in self.candidates:
+            self.candidates[candidate_id].interview_video_path = video_path
+            self.candidates[candidate_id].confidence_score = confidence_score
+            self.candidates[candidate_id].interview_completed = True
+            self.candidates[candidate_id].status = "Interview_Completed"
+    
+    def mark_candidate_for_interview(self, candidate_id: str):
+        """Mark candidate as ready for interview after passing test"""
+        if candidate_id in self.candidates:
+            self.candidates[candidate_id].status = "Interview_Pending"
 
 # ==================== LLM INTERFACE ====================
 

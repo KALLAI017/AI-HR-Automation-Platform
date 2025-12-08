@@ -511,6 +511,11 @@ def show_login_page():
 def show_candidate_portal():
     """Candidate portal for job applications and tests"""
     
+    # Check if candidate has interview scheduled
+    if 'candidate_id' in st.session_state and st.session_state.get('show_interview', False):
+        show_interview_interface()
+        return
+    
     # Check if candidate has a test scheduled
     if 'candidate_id' in st.session_state and st.session_state.get('test_mode', False):
         show_test_interface()
@@ -713,6 +718,218 @@ def show_candidate_portal():
         st.session_state.logged_in = False
         st.rerun()
 
+# ==================== VIDEO INTERVIEW INTERFACE ====================
+
+def show_interview_interface():
+    """Video interview interface for candidate confidence assessment"""
+    from video_analyzer import analyze_candidate_video
+    import tempfile
+    import os
+    
+    candidate_id = st.session_state.get('candidate_id')
+    if not candidate_id:
+        st.error("Session expired. Please log in again.")
+        return
+    
+    candidate = st.session_state.db.candidates.get(candidate_id)
+    if not candidate:
+        st.error("Candidate not found.")
+        return
+    
+    # Get job details
+    job_id = st.session_state.db.get_job_id_by_title(candidate.applied_position)
+    job = st.session_state.db.job_positions.get(job_id)
+    
+    if not job:
+        st.error("Job position not found.")
+        return
+    
+    # Header
+    st.markdown("""
+        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    padding: 2.5rem; border-radius: 20px; margin-bottom: 2rem; 
+                    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);'>
+            <h1 style='color: white; margin: 0;'>🎥 Video Interview</h1>
+            <p style='color: rgba(255,255,255,0.9); font-size: 1.1rem; margin-top: 0.5rem;'>
+                Final step in your application process
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    padding: 1.5rem; border-radius: 10px; color: white; margin-bottom: 2rem;">
+            <h3 style="margin:0; color: white;">Candidate: {candidate.name}</h3>
+            <p style="margin:0.5rem 0 0 0; color: white;">Position: {job.title}</p>
+            <p style="margin:0.5rem 0 0 0; color: white;">Test Score: {candidate.test_score:.1f}%</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Instructions
+    st.markdown("### 📋 Interview Instructions")
+    st.info("""
+        **Please record a self-introduction video (1-3 minutes) that includes:**
+        
+        1. **Introduction**: Tell us about yourself and your background
+        2. **Experience**: Briefly describe your relevant experience
+        3. **Motivation**: Why you want to join our company
+        4. **Skills**: Highlight your key strengths and skills
+        
+        **Technical Requirements:**
+        - Video format: MP4, AVI, MOV, or WebM
+        - Duration: 1-3 minutes recommended
+        - Clear audio and video quality
+        - Face should be clearly visible
+        - Good lighting is recommended
+        
+        **What we'll assess:**
+        - Communication skills and clarity
+        - Confidence and composure
+        - Presentation skills
+        - Overall enthusiasm
+    """)
+    
+    st.markdown("---")
+    
+    # Video upload
+    st.markdown("### 📤 Upload Your Self-Introduction Video")
+    
+    uploaded_video = st.file_uploader(
+        "Choose your video file",
+        type=['mp4', 'avi', 'mov', 'webm'],
+        help="Upload your self-introduction video (max 100MB)"
+    )
+    
+    if uploaded_video is not None:
+        # Display video preview
+        st.markdown("#### Preview Your Video")
+        st.video(uploaded_video)
+        
+        st.markdown("---")
+        
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("✅ Submit Video for Analysis", use_container_width=True, type="primary"):
+                with st.spinner("🔍 Analyzing your video... This may take a minute."):
+                    try:
+                        # Save uploaded video to temporary file
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp_file:
+                            tmp_file.write(uploaded_video.getvalue())
+                            tmp_path = tmp_file.name
+                        
+                        # Analyze the video
+                        analysis_result = analyze_candidate_video(tmp_path)
+                        
+                        # Save to uploads directory
+                        upload_dir = "uploads/interview_videos"
+                        os.makedirs(upload_dir, exist_ok=True)
+                        video_path = os.path.join(upload_dir, f"{candidate_id}_{uploaded_video.name}")
+                        
+                        with open(video_path, 'wb') as f:
+                            f.write(uploaded_video.getvalue())
+                        
+                        # Update database
+                        confidence_score = analysis_result.get('confidence_score', 5.0)
+                        st.session_state.db.update_candidate_interview_status(
+                            candidate_id, 
+                            video_path, 
+                            confidence_score
+                        )
+                        
+                        # Clean up temporary file
+                        if os.path.exists(tmp_path):
+                            os.remove(tmp_path)
+                        
+                        # Show results
+                        st.balloons()
+                        
+                        st.markdown(f"""
+                            <div class="success-box">
+                                <h2>✅ Interview Submitted Successfully!</h2>
+                                <p>Your video has been analyzed and submitted to our HR team.</p>
+                            </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Display confidence analysis
+                        st.markdown("### 📊 Confidence Assessment")
+                        
+                        # Score gauge
+                        col1, col2, col3 = st.columns([1, 2, 1])
+                        with col2:
+                            st.markdown(f"""
+                                <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                           padding: 2rem; border-radius: 15px; text-align: center; color: white;'>
+                                    <h1 style='font-size: 4rem; margin: 0; color: white;'>{confidence_score}/10</h1>
+                                    <p style='font-size: 1.2rem; margin: 0.5rem 0 0 0; color: white;'>Confidence Score</p>
+                                </div>
+                            """, unsafe_allow_html=True)
+                        
+                        st.markdown("<br>", unsafe_allow_html=True)
+                        
+                        # Interpretation
+                        st.info(f"**Assessment:** {analysis_result.get('interpretation', 'Analysis completed')}")
+                        
+                        # Strengths and improvements
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            st.markdown("#### ✅ Strengths")
+                            strengths = analysis_result.get('strengths', ['Completed the interview'])
+                            for strength in strengths:
+                                st.markdown(f"- {strength}")
+                        
+                        with col2:
+                            st.markdown("#### 💡 Areas for Improvement")
+                            improvements = analysis_result.get('areas_for_improvement', ['Keep practicing'])
+                            for improvement in improvements:
+                                st.markdown(f"- {improvement}")
+                        
+                        # Detailed metrics (expandable)
+                        with st.expander("📈 Detailed Analysis Metrics"):
+                            visual = analysis_result.get('visual_analysis', {})
+                            audio = analysis_result.get('audio_analysis', {})
+                            
+                            if visual and 'error' not in visual:
+                                st.markdown("**Visual Analysis:**")
+                                st.write(f"- Face Presence: {visual.get('face_presence', 0):.1f}%")
+                                st.write(f"- Emotional Positivity: {visual.get('emotional_positivity', 0):.1f}%")
+                                st.write(f"- Smile Rate: {visual.get('smile_rate', 0):.1f}%")
+                                st.write(f"- Eye Contact: {visual.get('eye_contact_rate', 0):.1f}%")
+                                st.write(f"- Head Stability: {visual.get('head_stability', 0):.1f}%")
+                            
+                            if audio and 'error' not in audio:
+                                st.markdown("**Audio Analysis:**")
+                                st.write(f"- Pitch Stability: {audio.get('pitch_stability', 0):.1f}%")
+                                st.write(f"- Energy Consistency: {audio.get('energy_consistency', 0):.1f}%")
+                                st.write(f"- Speaking Ratio: {audio.get('speaking_ratio', 0):.1f}%")
+                                st.write(f"- Speech Rate: {audio.get('speech_rate', 0):.1f} words/min")
+                        
+                        st.markdown("---")
+                        st.success("✅ Your confidence score has been sent to the admin for final review!")
+                        st.info("🔔 You will be notified via email about the final decision.")
+                        
+                        # Clear interview flag
+                        st.session_state.show_interview = False
+                        
+                        # Logout button
+                        if st.button("🔙 Return to Login", use_container_width=True):
+                            st.session_state.clear()
+                            st.rerun()
+                        
+                    except Exception as e:
+                        st.error(f"❌ Error analyzing video: {str(e)}")
+                        st.info("Please try again or contact support if the issue persists.")
+    
+    else:
+        st.info("👆 Please upload your self-introduction video to continue")
+    
+    st.markdown("---")
+    
+    # Back button (if user wants to return without submitting)
+    if st.button("🔙 Back to Dashboard", use_container_width=True):
+        st.session_state.show_interview = False
+        st.rerun()
+
 
 def show_test_interface():
     """Display test interface for selected candidates"""
@@ -795,46 +1012,23 @@ def show_test_interface():
         
         with st.spinner("Processing your test results..."):
             if passed:
-                # Convert to employee
-                username, password, employee_id = st.session_state.db.convert_candidate_to_employee(candidate_id)
+                # Mark candidate for interview instead of immediate hiring
+                st.session_state.db.mark_candidate_for_interview(candidate_id)
                 
-                if username and password:
-                    # Debug: Show what credentials were created
-                    print(f"✅ Created employee credentials:")
-                    print(f"   Username: {username}")
-                    print(f"   Password: {password}")
-                    print(f"   Employee ID: {employee_id}")
-                    
-                    # Verify user was added to database
-                    test_user = st.session_state.db.authenticate_user(username, password)
-                    print(f"   Verification: {test_user is not None}")
-                    
-                    # Send email with LLM-generated content
-                    email_result = st.session_state.agent.send_test_result_email(
-                        candidate_email=candidate.email,
-                        candidate_name=candidate.name,
-                        passed=True,
-                        test_score=score,
-                        position=job.title,
-                        username=username,
-                        password=password
-                    )
-                    
-                    st.balloons()
-                    st.markdown(f"""
-                        <div class="success-box">
-                            <h2>🎉 Congratulations! You Passed!</h2>
-                            <p><strong>Score:</strong> {score:.1f}% ({correct_answers}/{total_questions} correct)</p>
-                            <p><strong>Status:</strong> You are now hired as a {job.title}!</p>
-                        </div>
-                    """, unsafe_allow_html=True)
-                    
-                    st.markdown("### � Email Notification")
-                    if email_result['status'] == 'success':
-                        st.success(f"✅ {email_result['message']}")
-                        st.info("🔐 Your employee portal credentials have been sent to your email. Please check your inbox!")
-                    else:
-                        st.warning(f"⚠️ {email_result['message']}")
+                st.balloons()
+                st.markdown(f"""
+                    <div class="success-box">
+                        <h2>🎉 Congratulations! You Passed!</h2>
+                        <p><strong>Score:</strong> {score:.1f}% ({correct_answers}/{total_questions} correct)</p>
+                        <p><strong>Next Step:</strong> Please complete your video interview!</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # Set flag to show interview page
+                st.session_state.show_interview = True
+                st.session_state.test_mode = False
+                st.session_state.test_submitted = True
+                st.rerun()
                     
             else:
                 # Send rejection email
@@ -1243,7 +1437,53 @@ def show_admin_portal():
                         st.write(f"**Score:** {cand.evaluation_result['score']}%")
                         st.write(f"**Decision:** {cand.evaluation_result['decision']}")
                     
-                    if cand.status == "Accepted":
+                    if cand.test_score is not None:
+                        st.write(f"**Test Score:** {cand.test_score:.1f}%")
+                    
+                    if cand.confidence_score is not None:
+                        st.markdown(f"""
+                            <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                       padding: 1rem; border-radius: 10px; margin: 1rem 0;'>
+                                <h3 style='color: white; margin: 0;'>🎥 Interview Confidence Score</h3>
+                                <h1 style='color: white; font-size: 3rem; margin: 0.5rem 0;'>{cand.confidence_score}/10</h1>
+                            </div>
+                        """, unsafe_allow_html=True)
+                        
+                        if cand.interview_video_path:
+                            import os
+                            if os.path.exists(cand.interview_video_path):
+                                st.markdown("**📹 Interview Video:**")
+                                st.video(cand.interview_video_path)
+                    
+                    if cand.status == "Interview_Completed":
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button(f"✅ Hire {cand.name}", key=f"hire_{cand_id}"):
+                                # Convert to employee
+                                username, password, employee_id = st.session_state.db.convert_candidate_to_employee(cand_id)
+                                
+                                if username and password:
+                                    # Send email with credentials
+                                    email_result = st.session_state.agent.send_test_result_email(
+                                        candidate_email=cand.email,
+                                        candidate_name=cand.name,
+                                        passed=True,
+                                        test_score=cand.test_score,
+                                        position=cand.applied_position,
+                                        username=username,
+                                        password=password
+                                    )
+                                    
+                                    st.success(f"✅ {cand.name} hired successfully! Employee ID: {employee_id}")
+                                    st.info(f"Login created - Username: {username}, Password: {password}")
+                                    st.rerun()
+                        with col2:
+                            if st.button(f"❌ Reject {cand.name}", key=f"reject_{cand_id}"):
+                                st.session_state.db.candidates[cand_id].status = "Rejected"
+                                st.warning(f"❌ {cand.name} has been rejected")
+                                st.rerun()
+                    
+                    elif cand.status == "Accepted":
                         if st.button(f"✅ Onboard {cand.name}", key=f"onboard_{cand_id}"):
                             # Trigger onboarding
                             result = st.session_state.agent.handle_employee_onboarding(
@@ -1371,7 +1611,59 @@ def show_admin_portal():
                             with st.expander("📊 Evaluation Details"):
                                 st.json(cand.evaluation_result)
                         
-                        if cand.status == "Accepted":
+                        # Display test score if available
+                        if cand.test_score is not None:
+                            st.write(f"**📝 Test Score:** {cand.test_score:.1f}%")
+                        
+                        # Display confidence score if interview completed
+                        if cand.confidence_score is not None:
+                            st.markdown(f"""
+                                <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                           padding: 1.5rem; border-radius: 15px; margin: 1rem 0; text-align: center;'>
+                                    <h3 style='color: white; margin: 0;'>🎥 Interview Confidence</h3>
+                                    <h1 style='color: white; font-size: 3.5rem; margin: 0.5rem 0;'>{cand.confidence_score}/10</h1>
+                                    <p style='color: white; margin: 0;'>Confidence Score</p>
+                                </div>
+                            """, unsafe_allow_html=True)
+                            
+                            if cand.interview_video_path:
+                                import os
+                                if os.path.exists(cand.interview_video_path):
+                                    with st.expander("📹 View Interview Video"):
+                                        st.video(cand.interview_video_path)
+                        
+                        # Action buttons based on status
+                        if cand.status == "Interview_Completed":
+                            st.info("ℹ️ Interview completed - Ready for final decision")
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button(f"✅ Hire {cand.name}", key=f"hire_mgmt_{cand_id}", use_container_width=True):
+                                    # Convert to employee
+                                    username, password, employee_id = st.session_state.db.convert_candidate_to_employee(cand_id)
+                                    
+                                    if username and password:
+                                        # Send email with credentials
+                                        email_result = st.session_state.agent.send_test_result_email(
+                                            candidate_email=cand.email,
+                                            candidate_name=cand.name,
+                                            passed=True,
+                                            test_score=cand.test_score,
+                                            position=cand.applied_position,
+                                            username=username,
+                                            password=password
+                                        )
+                                        
+                                        st.balloons()
+                                        st.success(f"✅ {cand.name} hired! Employee ID: {employee_id}")
+                                        st.info(f"Credentials - Username: {username}, Password: {password}")
+                                        st.rerun()
+                            with col2:
+                                if st.button(f"❌ Reject {cand.name}", key=f"reject_mgmt_{cand_id}", use_container_width=True):
+                                    st.session_state.db.candidates[cand_id].status = "Rejected"
+                                    st.warning(f"❌ {cand.name} has been rejected")
+                                    st.rerun()
+                        
+                        elif cand.status == "Accepted":
                             st.success("✅ This candidate has been accepted")
                             if st.button(f"👤 Start Onboarding", key=f"onboard_mgmt_{cand_id}"):
                                 result = st.session_state.agent.handle_employee_onboarding(
