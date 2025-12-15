@@ -5,6 +5,8 @@ The hybrid video analyzer combines:
 - **Heuristic Analysis (60%)**: OpenCV + DeepFace + librosa for visual/audio behavioral analysis
 - **AI Analysis (40%)**: Groq Whisper (transcription) + LLaMA 3.3 70B (communication assessment)
 
+
+
 ## Current Status: ✅ WORKING
 
 ### Components Tested
