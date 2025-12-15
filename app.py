@@ -714,6 +714,108 @@ def show_candidate_portal():
         st.rerun()
 
 
+def show_video_interview_interface():
+    """Video interview interface with AI-powered analysis"""
+    from video_analyzer_hybrid import analyze_candidate_video_ai
+    import os
+    
+    # Video upload
+    uploaded_video = st.file_uploader(
+        "Upload your self-introduction video (MP4, AVI, MOV)",
+        type=['mp4', 'avi', 'mov'],
+        key="video_upload"
+    )
+    
+    if uploaded_video is not None:
+        # Save uploaded video
+        video_dir = "uploads/interview_videos"
+        os.makedirs(video_dir, exist_ok=True)
+        
+        candidate_id = st.session_state.get('candidate_id', 'unknown')
+        video_path = os.path.join(video_dir, f"{candidate_id}_{uploaded_video.name}")
+        
+        with open(video_path, "wb") as f:
+            f.write(uploaded_video.getbuffer())
+        
+        st.success(f"✅ Video uploaded: {uploaded_video.name}")
+        
+        # Analyze button
+        if st.button("🤖 Analyze with AI", use_container_width=True, type="primary"):
+            with st.spinner("🔍 AI is analyzing your video... This may take 30-60 seconds..."):
+                try:
+                    # Run hybrid AI analysis
+                    results = analyze_candidate_video_ai(video_path)
+                    
+                    if results['status'] == 'success':
+                        st.session_state.video_analyzed = True
+                        st.session_state.video_results = results
+                        st.success("✅ Analysis complete!")
+                        st.rerun()
+                    else:
+                        st.error(f"❌ Analysis failed: {results.get('error', 'Unknown error')}")
+                        
+                except Exception as e:
+                    st.error(f"❌ Error during analysis: {str(e)}")
+    
+    # Display results if available
+    if st.session_state.get('video_analyzed', False):
+        results = st.session_state.get('video_results', {})
+        
+        st.markdown("---")
+        st.markdown("### 📊 AI Analysis Results")
+        
+        # Main metrics
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            confidence = results.get('overall_confidence_score', 0)
+            st.metric("Overall Confidence", f"{confidence:.1f}/10", 
+                     delta=f"{confidence - 7:.1f}" if confidence >= 7 else f"{confidence - 7:.1f}")
+        with col2:
+            comm_score = results.get('ai_communication_score', 0)
+            st.metric("AI Communication", f"{comm_score}/100",
+                     delta="Good" if comm_score >= 70 else "Needs Work")
+        with col3:
+            heuristic = results.get('heuristic_score', 0)
+            st.metric("Visual Analysis", f"{heuristic:.1f}/10")
+        
+        # AI Feedback
+        if 'ai_feedback' in results:
+            st.markdown("#### 🤖 AI Feedback")
+            st.info(results['ai_feedback'])
+        
+        # Transcript
+        if 'transcript' in results and results['transcript']:
+            with st.expander("📝 Transcript"):
+                st.write(results['transcript'])
+        
+        # Detailed breakdown
+        with st.expander("📈 Detailed Breakdown"):
+            breakdown = results.get('breakdown', {})
+            
+            # Visual metrics
+            st.markdown("**Visual Analysis:**")
+            visual_cols = st.columns(2)
+            with visual_cols[0]:
+                st.write(f"- Nervousness: {breakdown.get('nervousness_score', 0):.1f}")
+                st.write(f"- Eye Contact: {breakdown.get('eye_contact_score', 0):.1f}")
+                st.write(f"- Smile Frequency: {breakdown.get('smile_score', 0):.1f}")
+            with visual_cols[1]:
+                st.write(f"- Fidgeting: {breakdown.get('fidgeting_score', 0):.1f}")
+                st.write(f"- Blink Rate: {breakdown.get('blink_rate', 0):.1f}")
+                st.write(f"- Face Quality: {breakdown.get('avg_face_quality', 0):.1f}")
+            
+            # Audio metrics
+            if 'audio_score' in breakdown:
+                st.markdown("**Audio Analysis:**")
+                audio_cols = st.columns(2)
+                with audio_cols[0]:
+                    st.write(f"- Audio Score: {breakdown.get('audio_score', 0):.1f}")
+                    st.write(f"- Pitch Variation: {breakdown.get('pitch_variation', 0):.1f}")
+                with audio_cols[1]:
+                    st.write(f"- Energy: {breakdown.get('energy', 0):.1f}")
+                    st.write(f"- Speech Rate: {breakdown.get('speech_rate', 0):.1f}")
+
+
 def show_test_interface():
     """Display test interface for selected candidates"""
     
@@ -867,6 +969,13 @@ def show_test_interface():
         
     # Always show return button after test (check if test was submitted OR if currently submitting)
     if st.session_state.get('test_submitted', False) or submit_test:
+        # Show video interview interface after test completion
+        st.markdown("---")
+        st.markdown("### 🎥 Video Self-Introduction")
+        st.info("📹 Please record a 1-2 minute video introducing yourself. Our AI will analyze your communication skills and confidence.")
+        
+        show_video_interview_interface()
+        
         # Clear test session
         st.markdown("---")
         if st.button("🔙 Return to Main Page", use_container_width=True, key="return_btn"):
@@ -875,6 +984,8 @@ def show_test_interface():
             st.session_state.test_submitted = False
             if 'test_answers' in st.session_state:
                 del st.session_state.test_answers
+            if 'video_analyzed' in st.session_state:
+                del st.session_state.video_analyzed
             st.rerun()
 
 # ==================== EMPLOYEE PORTAL ====================
