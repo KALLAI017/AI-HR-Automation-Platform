@@ -6,7 +6,7 @@ The hybrid video analyzer combines:
 - **AI Analysis (40%)**: Groq Whisper (transcription) + LLaMA 3.3 70B (communication assessment)
 
 
-
+en
 ## Current Status: ✅ WORKING
 
 ### Components Tested

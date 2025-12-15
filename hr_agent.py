@@ -128,6 +128,11 @@ class CodeSubmission:
     test_results: Optional[Dict] = None
     ai_analysis: Optional[Dict] = None
     interview_qa: Optional[List[Dict]] = None  # [{"question": str, "answer": str, "score": int}]
+    conversation_transcript: Optional[List[Dict]] = None  # Full chat history
+    hints_used: int = 0
+    approach_score: int = 0
+    communication_score: int = 0
+    final_interview_score: Optional[int] = None
     final_score: Optional[float] = None
 
 # ==================== DATABASE SIMULATOR ====================

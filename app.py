@@ -983,8 +983,52 @@ def show_test_interface():
             st.markdown("### 💻 Step 2: Technical Interview")
             st.success("✅ Video analysis complete! Now let's test your coding skills.")
             
-            from technical_interview_ui import show_technical_interview
-            show_technical_interview(st.session_state.db, st.session_state.candidate_id)
+            # Choose interview mode
+            if 'interview_mode' not in st.session_state:
+                st.markdown("#### 🎯 Choose Your Interview Experience")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("""
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                padding: 1.5rem; border-radius: 10px; color: white; height: 200px;">
+                        <h3 style="-webkit-text-fill-color: white;">💬 Chat Interview</h3>
+                        <p>• AI interviewer guides you</p>
+                        <p>• Get hints & debugging help</p>
+                        <p>• Natural conversation flow</p>
+                        <p>• FAANG-style experience</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    if st.button("🚀 Start Chat Interview", use_container_width=True):
+                        st.session_state.interview_mode = 'chat'
+                        st.rerun()
+                
+                with col2:
+                    st.markdown("""
+                    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                                padding: 1.5rem; border-radius: 10px; color: white; height: 200px;">
+                        <h3 style="-webkit-text-fill-color: white;">⚡ Quick Mode</h3>
+                        <p>• Direct problem solving</p>
+                        <p>• Faster completion</p>
+                        <p>• Traditional coding test</p>
+                        <p>• AI analysis after submit</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    if st.button("⚡ Start Quick Mode", use_container_width=True):
+                        st.session_state.interview_mode = 'quick'
+                        st.rerun()
+            
+            else:
+                # Show selected interview mode
+                if st.session_state.interview_mode == 'chat':
+                    from chat_interview_ui import show_chat_technical_interview
+                    show_chat_technical_interview(st.session_state.db, st.session_state.candidate_id)
+                else:
+                    from technical_interview_ui import show_technical_interview
+                    show_technical_interview(st.session_state.db, st.session_state.candidate_id)
         
         # Clear test session
         st.markdown("---")
@@ -1000,6 +1044,12 @@ def show_test_interface():
                 del st.session_state.selected_problem
             if 'code_submitted' in st.session_state:
                 del st.session_state.code_submitted
+            if 'interview_mode' in st.session_state:
+                del st.session_state.interview_mode
+            if 'chat_interview' in st.session_state:
+                del st.session_state.chat_interview
+            if 'chat_messages' in st.session_state:
+                del st.session_state.chat_messages
             st.rerun()
 
 # ==================== EMPLOYEE PORTAL ====================

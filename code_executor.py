@@ -18,8 +18,9 @@ class CodeExecutor:
     Supports multiple languages and test case validation
     """
     
-    # Judge0 API endpoints (using free RapidAPI)
+    # Judge0 API endpoints (using free public instance - no API key needed!)
     BASE_URL = "https://judge0-ce.p.rapidapi.com"
+    SULU_URL = "https://ce.judge0.com"  # Free public instance
     
     # Language IDs for Judge0
     LANGUAGES = {
@@ -32,11 +33,20 @@ class CodeExecutor:
     
     def __init__(self):
         self.api_key = os.getenv('JUDGE0_API_KEY', '')
-        self.headers = {
-            "content-type": "application/json",
-            "X-RapidAPI-Key": self.api_key,
-            "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com"
-        }
+        
+        # Use free public instance if no API key
+        if not self.api_key:
+            self.base_url = self.SULU_URL
+            self.headers = {
+                "content-type": "application/json"
+            }
+        else:
+            self.base_url = self.BASE_URL
+            self.headers = {
+                "content-type": "application/json",
+                "X-RapidAPI-Key": self.api_key,
+                "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com"
+            }
     
     def execute_code(
         self, 
@@ -83,7 +93,7 @@ class CodeExecutor:
             
             # Submit code
             response = requests.post(
-                f"{self.BASE_URL}/submissions?base64_encoded=true&wait=false",
+                f"{self.base_url}/submissions?base64_encoded=true&wait=false",
                 json=submission_data,
                 headers=self.headers
             )
@@ -115,7 +125,7 @@ class CodeExecutor:
         for _ in range(max_attempts):
             try:
                 response = requests.get(
-                    f"{self.BASE_URL}/submissions/{token}?base64_encoded=true",
+                    f"{self.base_url}/submissions/{token}?base64_encoded=true",
                     headers=self.headers
                 )
                 
