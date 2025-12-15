@@ -101,6 +101,35 @@ class User:
     role: str  # Candidate, Employee, Admin
     employee_id: Optional[str] = None
 
+@dataclass
+class TechnicalProblem:
+    problem_id: str
+    title: str
+    difficulty: str  # Easy, Medium, Hard
+    description: str
+    input_format: str
+    output_format: str
+    constraints: str
+    examples: List[Dict]  # [{"input": str, "output": str, "explanation": str}]
+    test_cases: List[Dict]  # [{"input": str, "expected": str, "visible": bool}]
+    time_limit: float  # seconds
+    memory_limit: int  # KB
+    tags: List[str]  # ["Array", "Hash Table", etc.]
+    starter_code: Dict[str, str]  # {"python": "...", "java": "...", "cpp": "..."}
+
+@dataclass
+class CodeSubmission:
+    submission_id: str
+    candidate_id: str
+    problem_id: str
+    code: str
+    language: str
+    submitted_at: str
+    test_results: Optional[Dict] = None
+    ai_analysis: Optional[Dict] = None
+    interview_qa: Optional[List[Dict]] = None  # [{"question": str, "answer": str, "score": int}]
+    final_score: Optional[float] = None
+
 # ==================== DATABASE SIMULATOR ====================
 
 class Database:
@@ -115,6 +144,8 @@ class Database:
         self.candidates: Dict[str, Candidate] = {}
         self.users: Dict[str, User] = {}
         self.eligibility_criteria: Dict[str, Dict] = {}
+        self.technical_problems: Dict[str, TechnicalProblem] = {}
+        self.code_submissions: Dict[str, CodeSubmission] = {}
         self._initialize_data()
     
     def _initialize_data(self):
@@ -310,6 +341,185 @@ class Database:
             )
         }
         
+        # Initialize Technical Problems
+        self.technical_problems = {
+            "PROB001": TechnicalProblem(
+                problem_id="PROB001",
+                title="Two Sum",
+                difficulty="Easy",
+                description="""Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
+
+You may assume that each input would have exactly one solution, and you may not use the same element twice.
+
+You can return the answer in any order.""",
+                input_format="First line: space-separated integers (the array)\nSecond line: target integer",
+                output_format="Two space-separated integers (the indices)",
+                constraints="2 <= nums.length <= 10^4\n-10^9 <= nums[i] <= 10^9\n-10^9 <= target <= 10^9",
+                examples=[
+                    {
+                        "input": "2 7 11 15\n9",
+                        "output": "0 1",
+                        "explanation": "Because nums[0] + nums[1] == 9, we return [0, 1]."
+                    },
+                    {
+                        "input": "3 2 4\n6",
+                        "output": "1 2",
+                        "explanation": "Because nums[1] + nums[2] == 6, we return [1, 2]."
+                    }
+                ],
+                test_cases=[
+                    {"input": "2 7 11 15\n9", "expected": "0 1", "visible": True},
+                    {"input": "3 2 4\n6", "expected": "1 2", "visible": True},
+                    {"input": "3 3\n6", "expected": "0 1", "visible": False},
+                    {"input": "1 2 3 4 5\n9", "expected": "3 4", "visible": False},
+                ],
+                time_limit=2.0,
+                memory_limit=128000,
+                tags=["Array", "Hash Table"],
+                starter_code={
+                    "python": """# Read input
+nums = list(map(int, input().split()))
+target = int(input())
+
+# Your code here
+def two_sum(nums, target):
+    pass
+
+# Output the result
+result = two_sum(nums, target)
+print(result[0], result[1])""",
+                    "java": """import java.util.*;
+
+public class Solution {
+    public static int[] twoSum(int[] nums, int target) {
+        // Your code here
+        return new int[]{0, 0};
+    }
+    
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        String[] numsStr = sc.nextLine().split(" ");
+        int[] nums = new int[numsStr.length];
+        for (int i = 0; i < numsStr.length; i++) {
+            nums[i] = Integer.parseInt(numsStr[i]);
+        }
+        int target = sc.nextInt();
+        
+        int[] result = twoSum(nums, target);
+        System.out.println(result[0] + " " + result[1]);
+    }
+}""",
+                    "cpp": """#include <iostream>
+#include <vector>
+#include <sstream>
+using namespace std;
+
+vector<int> twoSum(vector<int>& nums, int target) {
+    // Your code here
+    return {0, 0};
+}
+
+int main() {
+    string line;
+    getline(cin, line);
+    istringstream iss(line);
+    vector<int> nums;
+    int num;
+    while (iss >> num) {
+        nums.push_back(num);
+    }
+    
+    int target;
+    cin >> target;
+    
+    vector<int> result = twoSum(nums, target);
+    cout << result[0] << " " << result[1] << endl;
+    
+    return 0;
+}"""
+                }
+            ),
+            "PROB002": TechnicalProblem(
+                problem_id="PROB002",
+                title="Valid Parentheses",
+                difficulty="Easy",
+                description="""Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.
+
+An input string is valid if:
+1. Open brackets must be closed by the same type of brackets.
+2. Open brackets must be closed in the correct order.
+3. Every close bracket has a corresponding open bracket of the same type.""",
+                input_format="A single line containing the string s",
+                output_format="true if valid, false otherwise",
+                constraints="1 <= s.length <= 10^4\ns consists of parentheses only '()[]{}'",
+                examples=[
+                    {
+                        "input": "()",
+                        "output": "true",
+                        "explanation": "The string is valid."
+                    },
+                    {
+                        "input": "()[]{}",
+                        "output": "true",
+                        "explanation": "All brackets are properly closed."
+                    },
+                    {
+                        "input": "(]",
+                        "output": "false",
+                        "explanation": "Mismatched bracket types."
+                    }
+                ],
+                test_cases=[
+                    {"input": "()", "expected": "true", "visible": True},
+                    {"input": "()[]{}", "expected": "true", "visible": True},
+                    {"input": "(]", "expected": "false", "visible": True},
+                    {"input": "([)]", "expected": "false", "visible": False},
+                    {"input": "{[]}", "expected": "true", "visible": False},
+                ],
+                time_limit=2.0,
+                memory_limit=128000,
+                tags=["String", "Stack"],
+                starter_code={
+                    "python": """s = input().strip()
+
+def is_valid(s):
+    # Your code here
+    pass
+
+print(str(is_valid(s)).lower())""",
+                    "java": """import java.util.*;
+
+public class Solution {
+    public static boolean isValid(String s) {
+        // Your code here
+        return false;
+    }
+    
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        String s = sc.nextLine();
+        System.out.println(isValid(s));
+    }
+}""",
+                    "cpp": """#include <iostream>
+#include <string>
+using namespace std;
+
+bool isValid(string s) {
+    // Your code here
+    return false;
+}
+
+int main() {
+    string s;
+    cin >> s;
+    cout << (isValid(s) ? "true" : "false") << endl;
+    return 0;
+}"""
+                }
+            )
+        }
+        
         # Default Eligibility Criteria (can be updated by Admin)
         self.eligibility_criteria = {
             "skill_match_threshold": 50,  # % of skills that must match
@@ -465,6 +675,42 @@ Leave Balance:
             if job.title == title:
                 return job_id
         return None
+    
+    # ==================== TECHNICAL PROBLEMS METHODS ====================
+    
+    def get_technical_problem(self, problem_id: str) -> Optional[TechnicalProblem]:
+        """Get a technical problem by ID"""
+        return self.technical_problems.get(problem_id)
+    
+    def get_problems_by_difficulty(self, difficulty: str) -> List[TechnicalProblem]:
+        """Get all problems of a specific difficulty"""
+        return [p for p in self.technical_problems.values() if p.difficulty == difficulty]
+    
+    def add_code_submission(self, submission: CodeSubmission):
+        """Add a code submission"""
+        self.code_submissions[submission.submission_id] = submission
+    
+    def get_candidate_submissions(self, candidate_id: str) -> List[CodeSubmission]:
+        """Get all submissions for a candidate"""
+        return [s for s in self.code_submissions.values() if s.candidate_id == candidate_id]
+    
+    def update_submission_results(self, submission_id: str, test_results: Dict, ai_analysis: Dict):
+        """Update submission with test results and AI analysis"""
+        if submission_id in self.code_submissions:
+            self.code_submissions[submission_id].test_results = test_results
+            self.code_submissions[submission_id].ai_analysis = ai_analysis
+    
+    def update_submission_interview_qa(self, submission_id: str, qa_entry: Dict):
+        """Add interview Q&A to submission"""
+        if submission_id in self.code_submissions:
+            if self.code_submissions[submission_id].interview_qa is None:
+                self.code_submissions[submission_id].interview_qa = []
+            self.code_submissions[submission_id].interview_qa.append(qa_entry)
+    
+    def update_submission_final_score(self, submission_id: str, final_score: float):
+        """Update final score for submission"""
+        if submission_id in self.code_submissions:
+            self.code_submissions[submission_id].final_score = final_score
 
 # ==================== LLM INTERFACE ====================
 

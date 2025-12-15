@@ -967,14 +967,24 @@ def show_test_interface():
         # Mark test as submitted to persist results
         st.session_state.test_submitted = True
         
-    # Always show return button after test (check if test was submitted OR if currently submitting)
+    # Always show sections after test (check if test was submitted OR if currently submitting)
     if st.session_state.get('test_submitted', False) or submit_test:
         # Show video interview interface after test completion
-        st.markdown("---")
-        st.markdown("### 🎥 Video Self-Introduction")
-        st.info("📹 Please record a 1-2 minute video introducing yourself. Our AI will analyze your communication skills and confidence.")
+        if not st.session_state.get('video_analyzed', False):
+            st.markdown("---")
+            st.markdown("### 🎥 Step 1: Video Self-Introduction")
+            st.info("📹 Please record a 1-2 minute video introducing yourself. Our AI will analyze your communication skills and confidence.")
+            
+            show_video_interview_interface()
         
-        show_video_interview_interface()
+        # Show technical interview after video is analyzed
+        if st.session_state.get('video_analyzed', False):
+            st.markdown("---")
+            st.markdown("### 💻 Step 2: Technical Interview")
+            st.success("✅ Video analysis complete! Now let's test your coding skills.")
+            
+            from technical_interview_ui import show_technical_interview
+            show_technical_interview(st.session_state.db, st.session_state.candidate_id)
         
         # Clear test session
         st.markdown("---")
@@ -986,6 +996,10 @@ def show_test_interface():
                 del st.session_state.test_answers
             if 'video_analyzed' in st.session_state:
                 del st.session_state.video_analyzed
+            if 'selected_problem' in st.session_state:
+                del st.session_state.selected_problem
+            if 'code_submitted' in st.session_state:
+                del st.session_state.code_submitted
             st.rerun()
 
 # ==================== EMPLOYEE PORTAL ====================
