@@ -307,8 +307,9 @@ def submit_solution(db, candidate_id, problem, code, language):
         st.session_state.ai_analysis = ai_analysis
         st.session_state.code_submitted = True
         
-        # Start AI interview if tests passed
+        # Mark technical interview as completed if tests passed
         if test_results['all_passed']:
+            st.session_state.technical_completed = True
             st.session_state.interview_mode = True
         
         st.success("✅ Solution submitted successfully!")

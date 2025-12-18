@@ -5,6 +5,7 @@ Left: AI Interview Chat | Right: Code Editor
 import streamlit as st
 from streamlit_ace import st_ace
 import datetime
+import time
 from typing import Dict, Optional, List
 from code_executor import CodeExecutor
 from technical_interview_chat import TechnicalInterviewChat
@@ -229,29 +230,27 @@ def show_stage_indicator(current_stage: str):
 def show_chat_interface(chat: TechnicalInterviewChat, problem: Dict):
     """Display chat messages and input"""
     
-    # Chat container with messages
-    chat_html = '<div class="chat-container">'
+    # Use Streamlit's native container for better rendering
+    chat_container = st.container()
     
-    for msg in st.session_state.chat_messages:
-        role_class = "chat-ai" if msg['role'] == 'assistant' else "chat-user"
-        role_icon = "🤖" if msg['role'] == 'assistant' else "👤"
-        
-        # Add hint badge if it's a hint message
-        hint_badge = ''
-        if msg.get('type') == 'hint':
-            hint_num = msg.get('hint_number', 0)
-            hint_badge = f'<span class="hint-badge">💡 Hint #{hint_num}</span><br>'
-        
-        chat_html += f'''
-        <div class="chat-message {role_class}">
-            <strong>{role_icon} {"AI Interviewer" if msg["role"] == "assistant" else "You"}:</strong><br>
-            {hint_badge}
-            {msg["content"]}
-        </div>
-        '''
+    with chat_container:
+        # Display messages using Streamlit's chat components
+        for msg in st.session_state.chat_messages:
+            role_icon = "🤖 AI Interviewer" if msg['role'] == 'assistant' else "👤 You"
+            
+            # Add hint badge if it's a hint message
+            if msg.get('type') == 'hint':
+                hint_num = msg.get('hint_number', 0)
+                with st.chat_message("assistant", avatar="💡"):
+                    st.markdown(f"**Hint #{hint_num}**")
+                    st.markdown(msg["content"])
+            else:
+                # Use Streamlit's native chat message
+                with st.chat_message(msg['role']):
+                    st.markdown(msg["content"])
     
-    chat_html += '</div>'
-    st.markdown(chat_html, unsafe_allow_html=True)
+    # Add spacing
+    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
     
     # Action buttons based on stage
     current_stage = chat.current_stage.upper()
@@ -540,20 +539,31 @@ def show_code_editor_with_chat(db, candidate_id: str, problem: Dict):
     if st.session_state.get('test_results'):
         st.markdown("---")
         st.markdown("### 🧪 Test Results")
+        st.caption(f"Last run: {datetime.datetime.now().strftime('%H:%M:%S')}")
         display_test_results_compact(st.session_state.test_results)
 
 
 def run_code_with_chat(db, code: str, language: str, problem: Dict, visible_only: bool = True):
     """Run code and show results"""
+    # Clear old test results first
+    if 'test_results' in st.session_state:
+        del st.session_state.test_results
+    
     executor = CodeExecutor()
     
     # Get test cases
     test_cases = [tc for tc in problem.test_cases if tc.get('visible', True)] if visible_only else problem.test_cases
     
+    # Show execution method
+    if language.lower() == 'python':
+        st.info("💻 Running Python code locally (instant execution)")
+    
     with st.spinner("🚀 Running tests..."):
         results = executor.run_test_cases(code, language, test_cases)
     
+    # Store the full results dict with timestamp to force refresh
     st.session_state.test_results = results
+    st.session_state.test_results_timestamp = time.time()
     st.rerun()
 
 
@@ -567,8 +577,9 @@ def submit_code_with_chat(db, candidate_id: str, code: str, language: str, probl
         results = executor.run_test_cases(code, language, problem.test_cases)
         st.session_state.test_results = results
         
-        # AI analysis
-        analysis = chat.analyze_code_submission(code, results)
+        # AI analysis - pass test_results list
+        test_results_list = results.get('test_results', [])
+        analysis = chat.analyze_code_submission(code, test_results_list)
         
         # Add to chat
         st.session_state.chat_messages.append({
@@ -581,21 +592,57 @@ def submit_code_with_chat(db, candidate_id: str, code: str, language: str, probl
         # Move to review stage
         chat.current_stage = 'REVIEW'
         st.session_state.code_submitted = True
+        
+        # Mark technical interview as completed if tests passed
+        if results.get('all_passed', False):
+            st.session_state.technical_completed = True
     
     st.success("✅ Code submitted and analyzed!")
     st.rerun()
 
 
-def display_test_results_compact(results: List[Dict]):
+def display_test_results_compact(results):
     """Compact test results display"""
-    passed = sum(1 for r in results if r['status'] == 'passed')
-    total = len(results)
+    # Handle different result formats
+    if isinstance(results, dict):
+        # If results is a dict with test_results key
+        if 'test_results' in results:
+            test_list = results['test_results']
+            total = results.get('total', len(test_list))
+            passed = results.get('passed', 0)
+        else:
+            return  # Invalid format
+    elif isinstance(results, list):
+        # If results is already a list
+        test_list = results
+        passed = sum(1 for r in test_list if isinstance(r, dict) and r.get('status') == 'passed')
+        total = len(test_list)
+    else:
+        st.error("Invalid test results format")
+        return
     
     col1, col2, col3 = st.columns(3)
     col1.metric("Total", total)
-    col2.metric("Passed", passed, delta=f"{(passed/total*100):.0f}%")
+    col2.metric("Passed", passed, delta=f"{(passed/total*100):.0f}%" if total > 0 else "0%")
     col3.metric("Failed", total - passed)
     
-    for i, result in enumerate(results[:3]):  # Show first 3
-        status_emoji = "✅" if result['status'] == 'passed' else "❌"
-        st.caption(f"{status_emoji} Test {i+1}: {result['status'].upper()}")
+    # Show detailed results with actual vs expected
+    for i, result in enumerate(test_list[:5]):  # Show first 5
+        if isinstance(result, dict):
+            status = result.get('status', 'unknown')
+            status_emoji = "✅" if status == 'passed' else "❌" if status == 'failed' else "⚠️"
+            
+            with st.expander(f"{status_emoji} Test {i+1}: {status.upper()}", expanded=(status != 'passed')):
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    st.text(f"Input:\n{result.get('input', 'N/A')}")
+                    st.text(f"Expected:\n{result.get('expected', 'N/A')}")
+                with col_b:
+                    actual = result.get('actual', '')
+                    st.text(f"Your Output:\n{actual if actual else '(no output)'}")
+                    if result.get('error'):
+                        st.error(f"Error:\n{result.get('error')}")
+                    
+                # Show execution details
+                if status != 'passed':
+                    st.caption(f"⏱️ Time: {result.get('time', 0):.3f}s | 💾 Memory: {result.get('memory', 0)} KB")

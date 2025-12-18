@@ -1,5 +1,5 @@
 """
-Code Execution Service - Judge0 API Integration
+Code Execution Service - Judge0 API Integration with Local Fallback
 Executes code in multiple languages with test cases
 """
 import requests
@@ -8,6 +8,7 @@ from typing import Dict, List, Optional
 import base64
 import os
 from dotenv import load_dotenv
+from local_executor import LocalPythonExecutor
 
 load_dotenv()
 
@@ -20,7 +21,9 @@ class CodeExecutor:
     
     # Judge0 API endpoints (using free public instance - no API key needed!)
     BASE_URL = "https://judge0-ce.p.rapidapi.com"
-    SULU_URL = "https://ce.judge0.com"  # Free public instance
+    SULU_URL = "https://ce.judge0.com"  # Free public instance (primary)
+    BACKUP_URL = "https://judge0.p.rapidapi.com"  # Backup
+    EXTRA_URL = "https://judge0-extra.p.rapidapi.com"  # Extra
     
     # Language IDs for Judge0
     LANGUAGES = {
@@ -33,6 +36,8 @@ class CodeExecutor:
     
     def __init__(self):
         self.api_key = os.getenv('JUDGE0_API_KEY', '')
+        self.local_executor = LocalPythonExecutor()  # Fallback for Python
+        self.use_local = False  # Will switch to True if Judge0 fails
         
         # Use free public instance if no API key
         if not self.api_key:
@@ -69,6 +74,10 @@ class CodeExecutor:
         Returns:
             Dict with status, output, time, memory, error
         """
+        # Use local executor for Python if Judge0 is unavailable
+        if self.use_local and language.lower() == 'python':
+            return self.local_executor.execute_python(code, stdin, time_limit)
+        
         try:
             language_id = self.LANGUAGES.get(language.lower())
             if not language_id:
@@ -95,10 +104,28 @@ class CodeExecutor:
             response = requests.post(
                 f"{self.base_url}/submissions?base64_encoded=true&wait=false",
                 json=submission_data,
-                headers=self.headers
+                headers=self.headers,
+                timeout=10  # Add timeout to catch slow responses
             )
             
+            if response.status_code == 504:
+                # Gateway timeout - switch to local executor for Python
+                if language.lower() == 'python':
+                    self.use_local = True
+                    return self.local_executor.execute_python(code, stdin, time_limit)
+                else:
+                    return {
+                        'status': 'error',
+                        'error': 'Code execution service is temporarily unavailable. Only Python is supported locally.',
+                        'output': ''
+                    }
+            
             if response.status_code != 201:
+                # Try local fallback for Python
+                if language.lower() == 'python':
+                    self.use_local = True
+                    return self.local_executor.execute_python(code, stdin, time_limit)
+                
                 return {
                     'status': 'error',
                     'error': f'Submission failed: {response.text}',
@@ -111,7 +138,23 @@ class CodeExecutor:
             result = self._get_submission_result(token)
             return result
             
+        except requests.exceptions.Timeout:
+            # Timeout - use local executor for Python
+            if language.lower() == 'python':
+                self.use_local = True
+                return self.local_executor.execute_python(code, stdin, time_limit)
+            return {
+                'status': 'error',
+                'error': 'Request timeout. Code execution service unavailable.',
+                'output': '',
+                'time': 0,
+                'memory': 0
+            }
         except Exception as e:
+            # Any other error - try local for Python
+            if language.lower() == 'python':
+                self.use_local = True
+                return self.local_executor.execute_python(code, stdin, time_limit)
             return {
                 'status': 'error',
                 'error': str(e),
@@ -217,7 +260,12 @@ class CodeExecutor:
             # Check if output matches expected
             actual_output = result['output'].strip()
             expected_output = test_case.get('expected', '').strip()
-            passed = actual_output == expected_output
+            
+            # Debug: Print comparison details (for troubleshooting)
+            # print(f"Test {i+1}: Expected '{expected_output}' vs Actual '{actual_output}'")
+            
+            # Flexible comparison - normalize outputs
+            passed = self._compare_outputs(actual_output, expected_output)
             
             if result['status'] == 'success' and passed:
                 results['passed'] += 1
@@ -257,6 +305,27 @@ class CodeExecutor:
         
         results['all_passed'] = (results['passed'] == results['total'])
         return results
+    
+    def _compare_outputs(self, actual: str, expected: str) -> bool:
+        """Flexible output comparison that handles common format variations"""
+        # Direct match
+        if actual == expected:
+            return True
+        
+        # Normalize: remove brackets, commas, extra whitespace
+        def normalize(s):
+            # Remove common formatting characters
+            s = s.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
+            s = s.replace(',', ' ').replace('\t', ' ')
+            # Split and rejoin to normalize whitespace
+            tokens = s.split()
+            return ' '.join(tokens)
+        
+        actual_norm = normalize(actual)
+        expected_norm = normalize(expected)
+        
+        # Compare normalized versions (order matters!)
+        return actual_norm == expected_norm
 
 
 # Test function

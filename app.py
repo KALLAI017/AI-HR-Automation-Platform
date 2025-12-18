@@ -719,45 +719,7 @@ def show_video_interview_interface():
     from video_analyzer_hybrid import analyze_candidate_video_ai
     import os
     
-    # Video upload
-    uploaded_video = st.file_uploader(
-        "Upload your self-introduction video (MP4, AVI, MOV)",
-        type=['mp4', 'avi', 'mov'],
-        key="video_upload"
-    )
-    
-    if uploaded_video is not None:
-        # Save uploaded video
-        video_dir = "uploads/interview_videos"
-        os.makedirs(video_dir, exist_ok=True)
-        
-        candidate_id = st.session_state.get('candidate_id', 'unknown')
-        video_path = os.path.join(video_dir, f"{candidate_id}_{uploaded_video.name}")
-        
-        with open(video_path, "wb") as f:
-            f.write(uploaded_video.getbuffer())
-        
-        st.success(f"✅ Video uploaded: {uploaded_video.name}")
-        
-        # Analyze button
-        if st.button("🤖 Analyze with AI", use_container_width=True, type="primary"):
-            with st.spinner("🔍 AI is analyzing your video... This may take 30-60 seconds..."):
-                try:
-                    # Run hybrid AI analysis
-                    results = analyze_candidate_video_ai(video_path)
-                    
-                    if results['status'] == 'success':
-                        st.session_state.video_analyzed = True
-                        st.session_state.video_results = results
-                        st.success("✅ Analysis complete!")
-                        st.rerun()
-                    else:
-                        st.error(f"❌ Analysis failed: {results.get('error', 'Unknown error')}")
-                        
-                except Exception as e:
-                    st.error(f"❌ Error during analysis: {str(e)}")
-    
-    # Display results if available
+    # Display results first if available (before upload section)
     if st.session_state.get('video_analyzed', False):
         results = st.session_state.get('video_results', {})
         
@@ -798,22 +760,92 @@ def show_video_interview_interface():
             with visual_cols[0]:
                 st.write(f"- Nervousness: {breakdown.get('nervousness_score', 0):.1f}")
                 st.write(f"- Eye Contact: {breakdown.get('eye_contact_score', 0):.1f}")
-                st.write(f"- Smile Frequency: {breakdown.get('smile_score', 0):.1f}")
+                st.write(f"- Smile Rate: {breakdown.get('smile_score', 0):.1f}")
             with visual_cols[1]:
+                st.write(f"- Head Stability: {breakdown.get('head_stability', 0):.1f}")
                 st.write(f"- Fidgeting: {breakdown.get('fidgeting_score', 0):.1f}")
-                st.write(f"- Blink Rate: {breakdown.get('blink_rate', 0):.1f}")
                 st.write(f"- Face Quality: {breakdown.get('avg_face_quality', 0):.1f}")
             
             # Audio metrics
-            if 'audio_score' in breakdown:
-                st.markdown("**Audio Analysis:**")
-                audio_cols = st.columns(2)
-                with audio_cols[0]:
-                    st.write(f"- Audio Score: {breakdown.get('audio_score', 0):.1f}")
-                    st.write(f"- Pitch Variation: {breakdown.get('pitch_variation', 0):.1f}")
-                with audio_cols[1]:
-                    st.write(f"- Energy: {breakdown.get('energy', 0):.1f}")
-                    st.write(f"- Speech Rate: {breakdown.get('speech_rate', 0):.1f}")
+            st.markdown("**Audio Analysis:**")
+            audio_cols = st.columns(2)
+            with audio_cols[0]:
+                st.write(f"- Audio Score: {breakdown.get('audio_score', 0):.1f}")
+                st.write(f"- Pitch Variation: {breakdown.get('pitch_variation', 0):.1f}")
+            with audio_cols[1]:
+                st.write(f"- Energy: {breakdown.get('energy', 0):.1f}")
+                st.write(f"- Speech Rate: {breakdown.get('speech_rate', 0):.1f}")
+        
+        st.success("✅ Video analysis complete! You can proceed to the next stage.")
+        return  # Don't show upload section again
+    
+    # Video upload section (only show if not analyzed yet)
+    st.markdown("#### 📹 Upload Your Video")
+    uploaded_video = st.file_uploader(
+        "Upload your self-introduction video (MP4, AVI, MOV)",
+        type=['mp4', 'avi', 'mov'],
+        key="video_upload"
+    )
+    
+    if uploaded_video is not None:
+        # Save uploaded video
+        video_dir = "uploads/interview_videos"
+        os.makedirs(video_dir, exist_ok=True)
+        
+        candidate_id = st.session_state.get('candidate_id', 'unknown')
+        video_path = os.path.join(video_dir, f"{candidate_id}_{uploaded_video.name}")
+        
+        # Save video file
+        try:
+            with open(video_path, "wb") as f:
+                f.write(uploaded_video.getbuffer())
+            
+            st.success(f"✅ Video uploaded successfully: {uploaded_video.name}")
+            st.info(f"📁 Saved to: {video_path}")
+            
+        except Exception as e:
+            st.error(f"❌ Failed to save video: {str(e)}")
+            return
+        
+        # Analyze button
+        analyze_btn = st.button("🤖 Analyze with AI", use_container_width=True, type="primary", key="analyze_video_btn")
+        
+        if analyze_btn:
+            with st.spinner("🔍 AI is analyzing your video... This may take 30-60 seconds..."):
+                try:
+                    st.info("🎬 Starting video analysis...")
+                    
+                    # Run hybrid AI analysis
+                    results = analyze_candidate_video_ai(video_path)
+                    
+                    st.write("Debug - Results received:", results.keys() if isinstance(results, dict) else type(results))
+                    st.info(f"📊 Analysis status: {results.get('status', 'unknown')}")
+                    
+                    if results.get('status') == 'success':
+                        # Store results in session state
+                        st.session_state.video_analyzed = True
+                        st.session_state.video_results = results
+                        
+                        # Show quick preview before rerun
+                        st.success("✅ Analysis complete!")
+                        st.metric("Score", f"{results.get('overall_confidence_score', 0):.1f}/10")
+                        st.balloons()
+                        
+                        # Wait a moment before rerun so user sees the success
+                        import time
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        error_msg = results.get('error', 'Unknown error occurred')
+                        st.error(f"❌ Analysis failed: {error_msg}")
+                        st.write("Full debug info:", results)
+                        
+                except Exception as e:
+                    st.error(f"❌ Error during analysis: {str(e)}")
+                    import traceback
+                    st.code(traceback.format_exc())
+    else:
+        st.info("👆 Please upload a video file to begin analysis")
 
 
 def show_test_interface():
@@ -969,19 +1001,11 @@ def show_test_interface():
         
     # Always show sections after test (check if test was submitted OR if currently submitting)
     if st.session_state.get('test_submitted', False) or submit_test:
-        # Show video interview interface after test completion
-        if not st.session_state.get('video_analyzed', False):
+        # Show technical interview first (Step 1)
+        if not st.session_state.get('technical_completed', False):
             st.markdown("---")
-            st.markdown("### 🎥 Step 1: Video Self-Introduction")
-            st.info("📹 Please record a 1-2 minute video introducing yourself. Our AI will analyze your communication skills and confidence.")
-            
-            show_video_interview_interface()
-        
-        # Show technical interview after video is analyzed
-        if st.session_state.get('video_analyzed', False):
-            st.markdown("---")
-            st.markdown("### 💻 Step 2: Technical Interview")
-            st.success("✅ Video analysis complete! Now let's test your coding skills.")
+            st.markdown("### 💻 Step 1: Technical Interview")
+            st.info("👨‍💻 Let's test your coding skills first. Pass this to proceed to video interview.")
             
             # Choose interview mode
             if 'interview_mode' not in st.session_state:
@@ -1030,6 +1054,24 @@ def show_test_interface():
                     from technical_interview_ui import show_technical_interview
                     show_technical_interview(st.session_state.db, st.session_state.candidate_id)
         
+        # Show video interview after technical interview is passed (Step 2)
+        if st.session_state.get('technical_completed', False):
+            st.markdown("---")
+            st.markdown("### 🎥 Step 2: Video Self-Introduction")
+            
+            # Show different messages based on analysis status
+            if not st.session_state.get('video_analyzed', False):
+                st.success("🎉 Congratulations! You passed the technical interview!")
+                st.info("📹 Please record a 1-2 minute video introducing yourself. Our AI will analyze your communication skills and confidence.")
+            
+            # Always show the interface (it handles showing upload or results internally)
+            show_video_interview_interface()
+        
+        # Show final completion message only after both stages done
+        if st.session_state.get('technical_completed', False) and st.session_state.get('video_analyzed', False):
+            st.markdown("---")
+            st.success("✅ All assessment stages completed! Our HR team will review your application and contact you soon.")
+        
         # Clear test session
         st.markdown("---")
         if st.button("🔙 Return to Main Page", use_container_width=True, key="return_btn"):
@@ -1046,6 +1088,8 @@ def show_test_interface():
                 del st.session_state.code_submitted
             if 'interview_mode' in st.session_state:
                 del st.session_state.interview_mode
+            if 'technical_completed' in st.session_state:
+                del st.session_state.technical_completed
             if 'chat_interview' in st.session_state:
                 del st.session_state.chat_interview
             if 'chat_messages' in st.session_state:

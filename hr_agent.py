@@ -386,13 +386,20 @@ You can return the answer in any order.""",
 nums = list(map(int, input().split()))
 target = int(input())
 
-# Your code here
+# Your solution here
 def two_sum(nums, target):
-    pass
+    seen = {}
+    for i, num in enumerate(nums):
+        diff = target - num
+        if diff in seen:
+            return [seen[diff], i]
+        seen[num] = i
+    return None
 
-# Output the result
+# Call function and print result
 result = two_sum(nums, target)
-print(result[0], result[1])""",
+if result:
+    print(result[0], result[1])""",
                     "java": """import java.util.*;
 
 public class Solution {
