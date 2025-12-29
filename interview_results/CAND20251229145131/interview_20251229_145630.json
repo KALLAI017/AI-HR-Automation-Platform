@@ -1,0 +1,105 @@
+{
+  "metadata": {
+    "candidate_id": "CAND20251229145131",
+    "timestamp": "20251229_145630",
+    "date": "2025-12-29T14:56:30.487008"
+  },
+  "interview_data": {
+    "interview_id": "INT_20251229_145630",
+    "problem": "Two Sum",
+    "stages_completed": [
+      "review",
+      "approach",
+      "introduction"
+    ],
+    "approach_quality": 95,
+    "communication_score": 0,
+    "hints_used": 0,
+    "conversation_history": [
+      {
+        "role": "assistant",
+        "content": "Welcome to our coding interview today, I'm excited to see your problem-solving skills in action.\n\nSo, we have a problem called \"Two Sum\" - we're given an array of integers and a target number, and we need to find the indices of two numbers in the array that add up to the target. This is a classic problem in computer science, and it's a great opportunity to showcase your coding skills. Let's take a look at an example: if we have the array [2, 7, 11, 15] and the target is 9, the output should be [0, 1] because 2 + 7 equals 9.\n\nDo you have any clarifying questions before we discuss your approach?",
+        "stage": "introduction",
+        "timestamp": "2025-12-29T14:52:19.036292",
+        "metadata": {}
+      },
+      {
+        "role": "user",
+        "content": "First i will explain the brute force approach. Here i can use two nested loops , one loop select a number and the second loop is used add the current number with another number in the array. But the problem here is it gives time complexity of O(n^2)).",
+        "stage": "approach",
+        "timestamp": "2025-12-29T14:52:37.167565",
+        "metadata": {}
+      },
+      {
+        "role": "assistant",
+        "content": "Correct! But can we do better than O(n²)?",
+        "stage": "approach",
+        "timestamp": "2025-12-29T14:52:37.800357",
+        "metadata": {}
+      },
+      {
+        "role": "user",
+        "content": "we can do this by using hash map so we can achieve a time complexity of O(n) and space complexity of O(n)\n",
+        "stage": "approach",
+        "timestamp": "2025-12-29T14:55:33.167817",
+        "metadata": {}
+      },
+      {
+        "role": "assistant",
+        "content": "Excellent! Your approach using a hash map is optimal. Let's implement it.",
+        "stage": "approach",
+        "timestamp": "2025-12-29T14:55:33.821453",
+        "metadata": {}
+      },
+      {
+        "role": "assistant",
+        "content": "The candidate's solution is efficient and correct, but could benefit from additional error handling and more descriptive variable names. Overall, the code is well-structured and easy to understand, but there is room for improvement in terms of robustness and readability.",
+        "stage": "review",
+        "timestamp": "2025-12-29T14:56:30.483700",
+        "metadata": {}
+      }
+    ],
+    "total_messages": 6,
+    "duration_estimate": 12
+  },
+  "scoring": {
+    "test_score": 50.0,
+    "quality_score": 27.0,
+    "approach_score": 9.5,
+    "communication_score": 0.0,
+    "hint_penalty": 0,
+    "final_score": 86.5,
+    "test_results": {
+      "passed": 4,
+      "total": 4,
+      "all_passed": true
+    },
+    "code_quality_details": {
+      "code_quality_score": 90,
+      "correctness": 100,
+      "efficiency": 100,
+      "readability": 85,
+      "time_complexity": "O(n)",
+      "space_complexity": "O(n)",
+      "strengths": [
+        "The candidate's solution has a time complexity of O(n), which is optimal for this problem.",
+        "The use of a hash map allows for efficient lookups and reduces the overall time complexity.",
+        "The candidate's approach is straightforward and easy to understand."
+      ],
+      "weaknesses": [
+        "The code does not include any error handling or input validation.",
+        "The variable names could be more descriptive, which would improve readability."
+      ],
+      "optimization_suggestions": [
+        "Add error handling to check for invalid inputs, such as non-integer values or an empty list.",
+        "Consider using more descriptive variable names to improve code readability."
+      ],
+      "follow_up_questions": [
+        "How would you handle edge cases, such as an empty list or a list with duplicate elements?",
+        "Can you think of any alternative approaches to solve this problem, and how would they compare to your current solution?",
+        "How would you optimize this solution if the input list was extremely large and did not fit into memory?"
+      ],
+      "overall_feedback": "The candidate's solution is efficient and correct, but could benefit from additional error handling and more descriptive variable names. Overall, the code is well-structured and easy to understand, but there is room for improvement in terms of robustness and readability."
+    }
+  }
+}

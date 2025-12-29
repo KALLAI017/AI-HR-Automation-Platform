@@ -60,11 +60,9 @@ class TechnicalInterviewChat:
         self.problem_data = problem
         self.current_stage = self.STAGES['INTRODUCTION']
         
-        prompt = f"""You are a friendly but professional technical interviewer at a top tech company. 
-You're conducting a coding interview for the following problem:
+        prompt = f"""You are a friendly technical interviewer conducting a coding interview.
 
-**Problem:** {problem['title']}
-**Difficulty:** {problem['difficulty']}
+**Problem:** {problem['title']} ({problem['difficulty']})
 
 **Description:**
 {problem['description']}
@@ -73,13 +71,12 @@ You're conducting a coding interview for the following problem:
 {self._format_examples(problem['examples'])}
 
 Your task:
-1. Greet the candidate warmly
-2. Introduce the problem in a conversational way
-3. Explain the problem clearly with examples
-4. Ask if they have any questions before we discuss their approach
-5. Keep it natural and encouraging
+1. Give a brief, warm greeting (1 sentence)
+2. Introduce the problem conversationally (2-3 sentences)
+3. Show ONE example to illustrate
+4. Ask: "Do you have any clarifying questions before we discuss your approach?"
 
-Be concise but clear. Make the candidate feel comfortable."""
+Be concise (max 5 sentences total). Keep it natural and encouraging."""
 
         response = self._call_llm(prompt, model=self.chat_model)
         self._add_to_history('assistant', response, 'introduction')
@@ -99,7 +96,7 @@ Be concise but clear. Make the candidate feel comfortable."""
         self.current_stage = self.STAGES['CLARIFICATION']
         self._add_to_history('user', candidate_question, 'clarification')
         
-        prompt = f"""You are a technical interviewer. The candidate asked:
+        prompt = f"""You are a technical interviewer. The candidate said:
 
 "{candidate_question}"
 
@@ -109,9 +106,16 @@ Problem context:
 Conversation so far:
 {self._get_recent_conversation(5)}
 
-Provide a clear, helpful answer. If it's a good clarifying question, praise them. 
-If the question is about something already explained, gently redirect to the problem statement.
-Keep your answer concise and encourage them to think about their approach."""
+IMPORTANT:
+- If they're EXPLAINING their approach (using words like "I will", "my approach", "brute force"), 
+  say: "Great! Let me hear your full approach before we dive into coding. Walk me through your solution step by step."
+  Then STOP and wait for their complete explanation.
+  
+- If they're ASKING a question about the problem:
+  * Good clarifying question: Praise them and answer clearly
+  * Already explained: Gently point to problem statement
+  
+Keep response SHORT (2-3 sentences max). Don't over-explain."""
 
         response = self._call_llm(prompt, model=self.chat_model)
         self._add_to_history('assistant', response, 'clarification')
@@ -139,11 +143,14 @@ Candidate's explanation:
 "{candidate_explanation}"
 
 Analyze their approach:
-1. Is the approach correct?
-2. What's the time complexity?
-3. What's the space complexity?
-4. Are they missing any edge cases?
-5. How clear is their explanation?
+1. Is the logic correct? (Will it produce the right answer?)
+2. What's the time/space complexity?
+3. If it's brute force (O(n²)), acknowledge it's correct but ask about optimization
+
+IMPORTANT:
+- For brute force (nested loops): approach_valid=true, score=60-70, then ask "Can we optimize this?"
+- For optimal (hash map): approach_valid=true, score=90-100, praise and move to coding
+- For incorrect: approach_valid=false, score=30-50, guide with questions
 
 Provide feedback in JSON format:
 {{
@@ -151,13 +158,13 @@ Provide feedback in JSON format:
   "approach_score": <0-100>,
   "time_complexity": "O(...)",
   "space_complexity": "O(...)",
-  "strengths": ["point1", "point2"],
-  "concerns": ["concern1", "concern2"],
-  "follow_up_question": "Ask about complexity or edge cases",
-  "feedback_message": "Conversational feedback to candidate"
+  "strengths": ["strength1", "strength2"],
+  "concerns": ["concern1 if any"],
+  "follow_up_question": "Ask about optimization if brute force, or edge cases if optimal",
+  "feedback_message": "SHORT response (2-3 sentences). If brute force: say 'Correct! But can we do better than O(n²)?' If optimal: 'Excellent! Let's implement it.'"
 }}
 
-Be encouraging but honest. If approach is wrong, guide with Socratic questions."""
+Be encouraging. Don't create confusion where there is none."""
 
         response = self._call_llm(prompt, model=self.analysis_model, json_mode=True)
         

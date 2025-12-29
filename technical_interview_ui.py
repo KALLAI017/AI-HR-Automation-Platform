@@ -8,6 +8,7 @@ import datetime
 from typing import Dict, Optional
 from code_executor import CodeExecutor
 from ai_code_analyzer import AICodeAnalyzer
+from interview_storage import InterviewStorage
 
 
 def show_technical_interview(db, candidate_id: str):
@@ -558,6 +559,38 @@ def calculate_final_score(db, candidate_id):
     
     db.update_submission_final_score(latest.submission_id, final_score)
     
+    # Prepare data for JSON storage
+    interview_data = {
+        'interview_id': latest.submission_id,
+        'problem': latest.problem_title,
+        'submission_date': datetime.datetime.now().isoformat(),
+        'language': latest.language,
+        'interview_qa': latest.interview_qa or [],
+        'stages_completed': ['coding', 'testing', 'qa'] if latest.interview_qa else ['coding', 'testing']
+    }
+    
+    scoring_data = {
+        'test_score': test_score,
+        'quality_score': quality_score,
+        'interview_score': interview_score,
+        'final_score': final_score,
+        'test_results': latest.test_results,
+        'code_quality_details': latest.ai_analysis,
+        'breakdown': {
+            'tests': f"{test_score:.1f}/50",
+            'quality': f"{quality_score:.1f}/30",
+            'interview': f"{interview_score:.1f}/20"
+        }
+    }
+    
+    # Save to JSON
+    storage = InterviewStorage()
+    saved_path = storage.save_interview_result(
+        candidate_id=candidate_id,
+        interview_data=interview_data,
+        scoring_data=scoring_data
+    )
+    
     # Display final score
     st.markdown("### 🏆 Final Interview Score")
     
@@ -572,6 +605,8 @@ def calculate_final_score(db, candidate_id):
     with col4:
         st.metric("**Total**", f"{final_score:.1f}/100", 
                  delta="Pass" if final_score >= 60 else "Fail")
+    
+    st.info(f"💾 Results saved to: {saved_path}")
     
     if final_score >= 60:
         st.balloons()

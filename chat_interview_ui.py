@@ -9,6 +9,7 @@ import time
 from typing import Dict, Optional, List
 from code_executor import CodeExecutor
 from technical_interview_chat import TechnicalInterviewChat
+from interview_storage import InterviewStorage
 
 
 def show_chat_technical_interview(db, candidate_id: str):
@@ -581,12 +582,53 @@ def submit_code_with_chat(db, candidate_id: str, code: str, language: str, probl
         test_results_list = results.get('test_results', [])
         analysis = chat.analyze_code_submission(code, test_results_list)
         
+        # Calculate scores
+        test_score = (results.get('passed', 0) / results.get('total', 1)) * 50  # 50% weight
+        quality_score = (analysis.get('code_quality_score', 70) / 100) * 30  # 30% weight
+        approach_score = (chat.approach_quality / 100) * 10  # 10% weight
+        communication_score = (chat.communication_score / 100) * 10  # 10% weight
+        hint_penalty = chat.hint_count * 5  # -5 points per hint
+        
+        final_score = test_score + quality_score + approach_score + communication_score - hint_penalty
+        final_score = max(0, min(100, final_score))  # Clamp between 0-100
+        
+        # Get interview report
+        interview_report = chat.get_final_report()
+        
+        # Prepare scoring data
+        scoring_data = {
+            'test_score': test_score,
+            'quality_score': quality_score,
+            'approach_score': approach_score,
+            'communication_score': communication_score,
+            'hint_penalty': -hint_penalty,
+            'final_score': final_score,
+            'test_results': {
+                'passed': results.get('passed', 0),
+                'total': results.get('total', 0),
+                'all_passed': results.get('all_passed', False)
+            },
+            'code_quality_details': analysis
+        }
+        
+        # Save to JSON
+        storage = InterviewStorage()
+        saved_path = storage.save_interview_result(
+            candidate_id=candidate_id,
+            interview_data=interview_report,
+            scoring_data=scoring_data
+        )
+        
+        # Store path in session for display
+        st.session_state.saved_interview_path = saved_path
+        
         # Add to chat
         st.session_state.chat_messages.append({
             'role': 'assistant',
             'content': analysis.get('overall_feedback', 'Analysis complete!'),
             'stage': 'review',
-            'analysis': analysis
+            'analysis': analysis,
+            'final_score': final_score
         })
         
         # Move to review stage
@@ -597,7 +639,8 @@ def submit_code_with_chat(db, candidate_id: str, code: str, language: str, probl
         if results.get('all_passed', False):
             st.session_state.technical_completed = True
     
-    st.success("✅ Code submitted and analyzed!")
+    st.success(f"✅ Code submitted and analyzed! Final Score: {final_score:.1f}/100")
+    st.info(f"💾 Results saved to: {st.session_state.saved_interview_path}")
     st.rerun()
 
 
