@@ -49,7 +49,9 @@ class InterviewStorage:
                 'date': datetime.now().isoformat(),
             },
             'interview_data': interview_data,
-            'scoring': scoring_data or {}
+            'scoring': scoring_data or {},
+            'psychometric_assessment': scoring_data.get('psychometric_results', {}) if scoring_data else {},
+            'psychometric_recommendations': scoring_data.get('psychometric_recommendations', {}) if scoring_data else {}
         }
         
         # Save to JSON

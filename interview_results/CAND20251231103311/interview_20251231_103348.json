@@ -1,0 +1,78 @@
+{
+  "metadata": {
+    "candidate_id": "CAND20251231103311",
+    "timestamp": "20251231_103348",
+    "date": "2025-12-31T10:33:48.010793"
+  },
+  "interview_data": {
+    "interview_id": "INT_20251231_103348",
+    "problem": "Two Sum",
+    "stages_completed": [
+      "review",
+      "introduction"
+    ],
+    "approach_quality": 0,
+    "communication_score": 0,
+    "hints_used": 0,
+    "conversation_history": [
+      {
+        "role": "assistant",
+        "content": "\"Hello, I'm excited to go through this coding challenge with you today.\"\n\nSo, let's talk about the problem we're tackling, known as Two Sum. We're given an array of integers and a target number, and we need to find the indices of two numbers in the array that add up to the target. This is a classic problem that's a great starting point for exploring algorithms and problem-solving techniques. Let's take a look at an example: if we have the array [2, 7, 11, 15] and a target of 9, the output should be [0, 1] because nums[0] (2) + nums[1] (7) equals 9.\n\nDo you have any clarifying questions before we discuss your approach?",
+        "stage": "introduction",
+        "timestamp": "2025-12-31T10:33:36.795309",
+        "metadata": {}
+      },
+      {
+        "role": "assistant",
+        "content": "The candidate's solution is correct, efficient, and well-structured, but could benefit from additional error checking and handling. The use of a dictionary to store seen numbers is a good approach, but could be improved with additional considerations for edge cases. Overall, the candidate demonstrates a good understanding of the problem and the ability to write clean and efficient code.",
+        "stage": "review",
+        "timestamp": "2025-12-31T10:33:48.007575",
+        "metadata": {}
+      }
+    ],
+    "total_messages": 2,
+    "duration_estimate": 4
+  },
+  "scoring": {
+    "test_score": 50.0,
+    "quality_score": 27.0,
+    "approach_score": 0.0,
+    "communication_score": 0.0,
+    "hint_penalty": 0,
+    "final_score": 77.0,
+    "test_results": {
+      "passed": 4,
+      "total": 4,
+      "all_passed": true
+    },
+    "code_quality_details": {
+      "code_quality_score": 90,
+      "correctness": 100,
+      "efficiency": 95,
+      "readability": 85,
+      "time_complexity": "O(n)",
+      "space_complexity": "O(n)",
+      "strengths": [
+        "The candidate has used a dictionary to store the numbers they have seen so far, which is an efficient approach.",
+        "The candidate has handled the case where the two numbers are not found in the list by returning None.",
+        "The candidate has used a single pass through the list, which is optimal for this problem."
+      ],
+      "weaknesses": [
+        "The candidate has not handled edge cases such as an empty list or a list with a single element.",
+        "The candidate has not provided any error checking or handling for invalid inputs."
+      ],
+      "optimization_suggestions": [
+        "Consider adding error checking to handle invalid inputs, such as non-integer values or a list with less than two elements.",
+        "Consider using a try-except block to handle any potential exceptions that may occur during execution."
+      ],
+      "follow_up_questions": [
+        "How would you optimize this solution if the input list was extremely large and didn't fit into memory?",
+        "How would you handle the case where the input list contains duplicate numbers?",
+        "Can you think of any alternative approaches to solving this problem that might be more efficient or easier to understand?"
+      ],
+      "overall_feedback": "The candidate's solution is correct, efficient, and well-structured, but could benefit from additional error checking and handling. The use of a dictionary to store seen numbers is a good approach, but could be improved with additional considerations for edge cases. Overall, the candidate demonstrates a good understanding of the problem and the ability to write clean and efficient code."
+    }
+  },
+  "psychometric_assessment": {},
+  "psychometric_recommendations": {}
+}

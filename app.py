@@ -1481,23 +1481,37 @@ def show_test_interface():
                     from technical_interview_ui import show_technical_interview
                     show_technical_interview(st.session_state.db, st.session_state.candidate_id)
         
-        # Show video interview after technical interview is passed (Step 2)
-        if st.session_state.get('technical_completed', False):
+        # Show psychometric assessment after technical interview (Step 2)
+        if st.session_state.get('technical_completed', False) and not st.session_state.get('psychometric_assessment_completed', False):
             st.markdown("---")
-            st.markdown("### 🎥 Step 2: Video Self-Introduction")
+            st.markdown("### 🧠 Step 2: Psychometric Assessment")
+            
+            if not st.session_state.get('psychometric_completed', False):
+                st.success("🎉 Congratulations! You passed the technical interview!")
+                st.info("📋 Please complete this brief 5-7 minute assessment to evaluate your emotional intelligence, adaptability, social skills, and behavioral competencies.")
+            
+            from psychometric_ui import show_psychometric_assessment
+            show_psychometric_assessment()
+        
+        # Show video interview after psychometric assessment (Step 3)
+        if st.session_state.get('psychometric_assessment_completed', False):
+            st.markdown("---")
+            st.markdown("### 🎥 Step 3: Video Self-Introduction")
             
             # Show different messages based on analysis status
             if not st.session_state.get('video_analyzed', False):
-                st.success("🎉 Congratulations! You passed the technical interview!")
+                st.success("🎉 Great job on the psychometric assessment!")
                 st.info("📹 Please record a 1-2 minute video introducing yourself. Our AI will analyze your communication skills and confidence.")
             
             # Always show the interface (it handles showing upload or results internally)
             show_video_interview_interface()
         
-        # Show final completion message only after both stages done
-        if st.session_state.get('technical_completed', False) and st.session_state.get('video_analyzed', False):
+        # Show final completion message only after all three stages done
+        if (st.session_state.get('technical_completed', False) and 
+            st.session_state.get('psychometric_assessment_completed', False) and 
+            st.session_state.get('video_analyzed', False)):
             st.markdown("---")
-            st.success("✅ All assessment stages completed! Our HR team will review your application and contact you soon.")
+            st.success("✅ All assessment stages completed! Our HR team will review your comprehensive profile and contact you soon.")
         
         # Clear test session
         st.markdown("---")
@@ -1517,6 +1531,16 @@ def show_test_interface():
                 del st.session_state.interview_mode
             if 'technical_completed' in st.session_state:
                 del st.session_state.technical_completed
+            if 'psychometric_assessment' in st.session_state:
+                del st.session_state.psychometric_assessment
+            if 'psychometric_completed' in st.session_state:
+                del st.session_state.psychometric_completed
+            if 'psychometric_assessment_completed' in st.session_state:
+                del st.session_state.psychometric_assessment_completed
+            if 'psychometric_results' in st.session_state:
+                del st.session_state.psychometric_results
+            if 'psychometric_recommendations' in st.session_state:
+                del st.session_state.psychometric_recommendations
             if 'chat_interview' in st.session_state:
                 del st.session_state.chat_interview
             if 'chat_messages' in st.session_state:
